@@ -32,21 +32,21 @@ function ChapterPage() {
 
   const toggleBookmark = () => {
     if (isBookmarked) {
-      dispatch({ 
-        type: 'REMOVE_BOOKMARK', 
-        payload: { novelId: novel.id, chapterNumber: currentChapter } 
+      dispatch({
+        type: 'REMOVE_BOOKMARK',
+        payload: { novelId: novel.id, chapterNumber: currentChapter }
       });
     } else {
-      dispatch({ 
-        type: 'ADD_BOOKMARK', 
-        payload: { 
+      dispatch({
+        type: 'ADD_BOOKMARK',
+        payload: {
           novelId: novel.id,
           novelName: novel.name,
           chapterNumber: currentChapter,
           chapterTitle: `Chapter ${currentChapter}`,
           novelTitle: novel.title,
           bookmarkedAt: new Date().toISOString()
-        } 
+        }
       });
     }
     setIsBookmarked(!isBookmarked);
@@ -55,8 +55,8 @@ function ChapterPage() {
   const nextChapter = currentChapter + 1;
   const prevChapter = currentChapter - 1;
 
-  // Sample chapter content
-  const chapterContent = `
+  // Get chapter content from novel data or use default
+  const chapterContent = novel.chapterContents?.[currentChapter] || `
     This is the beginning of Chapter ${currentChapter} of "${novel.title}".
     
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
@@ -80,7 +80,7 @@ function ChapterPage() {
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200"
       >
-        <Link 
+        <Link
           to={`/novel/${novelName}`}
           className="inline-flex items-center space-x-2 text-gray-600 hover:text-black transition-colors"
         >
@@ -89,16 +89,18 @@ function ChapterPage() {
         </Link>
 
         <div className="flex items-center space-x-4">
-          <button
-            onClick={toggleBookmark}
-            className={`p-2 rounded-lg transition-colors ${
-              isBookmarked 
-                ? 'bg-black text-white hover:bg-gray-800' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <i className={`fas fa-bookmark`}></i>
-          </button>
+          {state.user && (
+            <button
+              onClick={toggleBookmark}
+              className={`p-2 rounded-lg transition-colors ${
+                isBookmarked
+                  ? 'bg-black text-white hover:bg-gray-800'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <i className={`fas fa-bookmark`}></i>
+            </button>
+          )}
         </div>
       </motion.div>
 

@@ -13,7 +13,8 @@ const initialState = {
       chapters: 45,
       image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=300&h=400&fit=crop",
       lastUpdated: "2024-01-15",
-      tags: ["Fantasy", "Dark", "Adventure"]
+      tags: ["Fantasy", "Dark", "Adventure"],
+      chapterContents: {}
     },
     {
       id: 2,
@@ -24,7 +25,8 @@ const initialState = {
       chapters: 32,
       image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=300&h=400&fit=crop",
       lastUpdated: "2024-01-12",
-      tags: ["Sci-Fi", "Cyberpunk", "Thriller"]
+      tags: ["Sci-Fi", "Cyberpunk", "Thriller"],
+      chapterContents: {}
     },
     {
       id: 3,
@@ -35,7 +37,8 @@ const initialState = {
       chapters: 28,
       image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=300&h=400&fit=crop",
       lastUpdated: "2024-01-10",
-      tags: ["Romance", "Historical", "Mystery"]
+      tags: ["Romance", "Historical", "Mystery"],
+      chapterContents: {}
     }
   ],
   bookmarks: [],
@@ -44,11 +47,91 @@ const initialState = {
   notifications: [
     { id: 1, message: "New chapter available for Shadow Realm Chronicles", time: "2 hours ago", read: false },
     { id: 2, message: "You earned 10 coins for daily reading!", time: "1 day ago", read: false }
-  ]
+  ],
+  user: null,
+  isAdmin: false
 };
 
 function novelReducer(state, action) {
   switch (action.type) {
+    case 'LOGIN':
+      return {
+        ...state,
+        user: action.payload.user,
+        isAdmin: action.payload.isAdmin
+      };
+    case 'LOGOUT':
+      return {
+        ...state,
+        user: null,
+        isAdmin: false
+      };
+    case 'ADD_NOVEL':
+      return {
+        ...state,
+        novels: [...state.novels, action.payload]
+      };
+    case 'UPDATE_NOVEL':
+      return {
+        ...state,
+        novels: state.novels.map(novel =>
+          novel.id === action.payload.id ? action.payload : novel
+        )
+      };
+    case 'DELETE_NOVEL':
+      return {
+        ...state,
+        novels: state.novels.filter(novel => novel.id !== action.payload)
+      };
+    case 'ADD_CHAPTER':
+      return {
+        ...state,
+        novels: state.novels.map(novel =>
+          novel.id === action.payload.novelId
+            ? {
+                ...novel,
+                chapters: novel.chapters + 1,
+                chapterContents: {
+                  ...novel.chapterContents,
+                  [action.payload.chapterNumber]: action.payload.content
+                }
+              }
+            : novel
+        )
+      };
+    case 'UPDATE_CHAPTER':
+      return {
+        ...state,
+        novels: state.novels.map(novel =>
+          novel.id === action.payload.novelId
+            ? {
+                ...novel,
+                chapterContents: {
+                  ...novel.chapterContents,
+                  [action.payload.chapterNumber]: action.payload.content
+                }
+              }
+            : novel
+        )
+      };
+    case 'DELETE_CHAPTER':
+      return {
+        ...state,
+        novels: state.novels.map(novel =>
+          novel.id === action.payload.novelId
+            ? {
+                ...novel,
+                chapters: Math.max(0, novel.chapters - 1),
+                chapterContents: Object.keys(novel.chapterContents).reduce((acc, key) => {
+                  if (parseInt(key) !== action.payload.chapterNumber) {
+                    acc[key] = novel.chapterContents[key];
+                  }
+                  return acc;
+                }, {})
+              }
+            : novel
+        )
+      };
     case 'ADD_BOOKMARK':
       return {
         ...state,
@@ -88,6 +171,11 @@ function novelReducer(state, action) {
           notif.id === action.payload ? { ...notif, read: true } : notif
         )
       };
+    case 'LOAD_STATE':
+      return {
+        ...state,
+        [action.payload.key]: action.payload.value
+      };
     default:
       return state;
   }
@@ -97,30 +185,26 @@ export function NovelProvider({ children }) {
   const [state, dispatch] = useReducer(novelReducer, initialState);
 
   useEffect(() => {
-    const savedState = localStorage.getItem('novelAppState');
-    if (savedState) {
-      try {
+    try {
+      const savedState = localStorage.getItem('novelAppState');
+      if (savedState) {
         const parsed = JSON.parse(savedState);
         Object.keys(parsed).forEach(key => {
-          if (key !== 'novels') {
-            dispatch({ type: 'LOAD_STATE', payload: { key, value: parsed[key] } });
-          }
+          dispatch({ type: 'LOAD_STATE', payload: { key, value: parsed[key] } });
         });
-      } catch (error) {
-        console.error('Failed to load saved state:', error);
       }
+    } catch (error) {
+      console.error('Failed to load saved state:', error);
     }
   }, []);
 
   useEffect(() => {
-    const stateToSave = {
-      bookmarks: state.bookmarks,
-      readingList: state.readingList,
-      coins: state.coins,
-      notifications: state.notifications
-    };
-    localStorage.setItem('novelAppState', JSON.stringify(stateToSave));
-  }, [state.bookmarks, state.readingList, state.coins, state.notifications]);
+    try {
+      localStorage.setItem('novelAppState', JSON.stringify(state));
+    } catch (error) {
+      console.error('Failed to save state:', error);
+    }
+  }, [state]);
 
   return (
     <NovelContext.Provider value={{ state, dispatch }}>
